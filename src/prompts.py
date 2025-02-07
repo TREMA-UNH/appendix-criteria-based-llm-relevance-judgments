@@ -41,7 +41,7 @@ def parse_order(order_str):
         return "Invalid order string"
     
    
-# Function to create prompts based on different orders
+# Function to create system message based on different orders (we only use 3210 variant)
 def create_system_message(order_str):
     order = parse_order(order_str)
     descriptions = {
@@ -54,8 +54,10 @@ def create_system_message(order_str):
     prompt = f"""You are a search quality rater evaluating the relevance of passages. Given a query and passage, you must provide a score on an integer scale of 0 to 3 with the following meanings:\n
     {ordered_descriptions}
     Assume that you are writing an answer to the query. If the passage seems to be related to the query but does not include any answer to the query, mark it 1. If you would use any of the information contained in the passage in such an asnwer, mark it 2. If the passage is primarily about the query, or contains vital information about the topic, mark it 3. Otherwise, mark it 0."""
-    print(prompt)
+    # print(prompt)
     return prompt
+
+
 
 def create_system_message_for_rel(order_str="32"):
     order = parse_order(order_str)
