@@ -102,19 +102,23 @@ def get_relevance_score_baseline(prompt: str, pipeline, system_message: str) -> 
         )
         output = outputs[0]["generated_text"]
 
-    # Log first output for verification
+        # Return generated text without the prompt if chat template was used, otherwise return full text
+        if hasattr(pipeline.tokenizer, 'chat_template') and pipeline.tokenizer.chat_template is not None:
+            output =  outputs[0]["generated_text"][len(prompt):]
+        else:
+            output = outputs[0]["generated_text"]
     if not hasattr(get_relevance_score_baseline, "print_one_output"):
         get_relevance_score_baseline.print_one_output = True
-        print(f"Sample model output: {output}")    
-    
+        print(f"sample output: {output}")   
     return output
 
+
+
+
 def find_first_number(text: str) -> Optional[int]:
-    """
-    Extract the first valid relevance score (0-3) from text.
-    """
-    match = re.search(r'\b\d+\b', text)
-    if match and 0 <= int(match.group()) <= 3:
+    """Extract the first valid relevance score (0-3) from text."""
+    match = re.search(r'\b[0-3]\b', text)
+    if match:
         return int(match.group())
     return 0
 
@@ -140,7 +144,10 @@ def get_criteria_score(query: str, passage: str, criteria: Tuple[str, str],
     
     full_prompt = f"{criteria_prompt}\nQuery: {query}\nPassage: {passage}\nScore:"
     score = get_relevance_score_baseline(full_prompt, pipeline, system_message_decomposition)
-    return find_first_number(score)
+    # print(f"score: {score}")
+    final_score = find_first_number(score)
+    # print(final_score)
+    return final_score
 
 def aggregate_scores(scores: Dict[str, int], query: str, passage: str,
                     pipeline, system_message: str) -> Optional[int]:

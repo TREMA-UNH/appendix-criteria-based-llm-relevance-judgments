@@ -35,13 +35,14 @@ class RelevanceProcessor:
         for path in [self.generation_path, self.logs_path, self.cuda_errors_path]:
             path.parent.mkdir(parents=True, exist_ok=True)
                 
-    def debug_print(self, qidx, docidx, pred_score, prompt=None):
+    def debug_print(self, qidx, docidx, pred_score,criteria_scores, prompt=None):
         """Debugging prints for first run."""
         if not hasattr(self, "first_run_complete"):
             self.first_run_complete = True
             if prompt:
                 print("\n=== First Run Debug Info ===")
                 print(f"Prompt:\n{prompt}")
+            print(criteria_scores)
             print(f"Query ID: {qidx}")
             print(f"Doc ID: {docidx}")
             print(f"Prediction Score: {pred_score}")
@@ -88,7 +89,7 @@ def process_test_decomposed_prompts_only_qrel(test_qrel, docid_to_doc, qid_to_qu
                 decomposed_scores[(qidx, docidx)] = criteria_scores
                 
                 # Debug print for first run
-                processor.debug_print(qidx, docidx, pred_score)
+                processor.debug_print(qidx, docidx, pred_score, criteria_scores)
                 
             except RuntimeError as e:
                 if 'CUDA out of memory' in str(e):
