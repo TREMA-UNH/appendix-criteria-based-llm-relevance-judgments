@@ -6,6 +6,58 @@
 *Figure 3: Overview of our criteria-based relevance judgment approach. The method evaluates each query-passage pair across four predefined criteria (Exactness, Topicality, Coverage, and Contextual Fit) before aggregating these scores into a final relevance judgment.*
 ## Prompts
 
+Criteria-specific Grading System Message:
+
+```text 
+Please assess how well the provided passage meets specific criteria in relation to the query. Use the following scoring scale (0-3) for evaluation:
+
+0: Not relevant at all / No information provided.
+1: Marginally relevant / Partially addresses the criterion.
+2: Fairly relevant / Adequately addresses the criterion.
+3: Highly relevant / Fully satisfies the criterion.
+```
+
+
+
+Criteria-specific Grading Prompt:
+```text
+Please rate how well the given passage meets the {criterion name} criterion in relation to the query. The output should be a single score (0-3) indicating {criterion definition}.
+
+Query: [query]
+Passage: [passage]
+Score:
+```
+
+Aggregation System Message:
+```text
+You are a search quality rater evaluating the relevance of passages. Given a query and passage, you must provide a score on an integer scale of 0 to 3 with the following meanings:
+
+3 = Perfectly relevant: The passage is dedicated to the query and contains the exact answer.
+2 = Highly relevant: The passage has some answer for the query, but the answer may be a bit unclear, or hidden amongst extraneous information.
+1 = Related: The passage seems related to the query but does not answer it.
+0 = Irrelevant: The passage has nothing to do with the query
+
+Assume that you are writing an answer to the query. If the passage seems to be related to the query but does not include any answer to the query, mark it 1. If you would use any of the information contained in the passage in such an asnwer, mark it 2. If the passage is primarily about the query, or contains vital information about the topic, mark it 3. Otherwise, mark it 0.
+```
+
+
+
+Aggregation Prompt:
+
+The final relevance judgment combines individual criteria scores using this aggregation prompt:
+
+```text
+Please rate how the given passage is relevant to the query based on the given scores. 
+The output must be only a score (0-3) that indicates how relevant they are.
+
+Query: [query]
+Passage: [passage]
+Exactness: [score]
+Topicality: [score]
+Coverage: [score]
+Contextual Fit: [score]
+Score:
+```
 ## Code
 
 Source Code (src/)
@@ -20,15 +72,16 @@ Source Code (src/)
   - results/
 
 
-Basic Usage
-To evaluate passages using our criteria-based method:
+Basic Usage:
+
+An example on how to evaluate passages using our criteria-based method:
 ```bash
 python main.py \
   --model_id "meta-llama/Meta-Llama-3-8B-Instruct" \
-  --test_qrel_path "./data/llm4eval_dev_qrel_2024.txt" \
+  --test_qrel_path "./data/llm4eval_test_qrel_2024.txt" \
   --queries_path "./data/llm4eval_query_2024.txt" \
   --docs_path "./data/llm4eval_document_2024.jsonl" \
-  --result_file_path "./results/4prompts.txt" \
+  --result_file_path "./results/test_4prompts.txt" \ #output path to generated qrel
   --decomposed_relevance
 ```
 
