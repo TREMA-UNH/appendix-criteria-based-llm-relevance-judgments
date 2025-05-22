@@ -24,15 +24,19 @@ from model_utils import TogetherPipeline
 import time
 
 # Prompt Templates and System Messages
+
+
+
 # ----------------------------------
 SYSTEM_MESSAGE_DECOMPOSITION = """
-Please assess how well the provided passage meets specific criteria in relation to the query. 
-Use the following scoring scale (0-3) for evaluation:
+You are evaluating the relevance of a passage to a query. Please provide a score on an integer scale of 0 to 3 for each dimension of relevance.
 
-0: Not relevant at all / No information provided.
-1: Marginally relevant / Partially addresses the criterion.
-2: Fairly relevant / Adequately addresses the criterion.
-3: Highly relevant / Fully satisfies the criterion.
+3 = Excellent: The passage fully meets the criteria.
+2 = Good: The passage partially meets the criteria.
+1 = Fair: The passage has minor relevance but lacks in certain aspects.
+0 = Poor: The passage does not meet the criteria at all.
+
+Proceed with the evaluation.
 """
 
 CRITERIA_DEFINITIONS = {
@@ -141,6 +145,7 @@ def get_criteria_score(query: str, passage: str, criteria: Tuple[str, str],
         
     Returns:
         Integer score 0-3 or None if invalid
+        
     """
     criteria_name, criteria_definition = criteria
     criteria_prompt = (f"Please rate how well the given passage meets the {criteria_name} criterion "
@@ -165,7 +170,7 @@ def aggregate_scores(scores: Dict[str, int], query: str, passage: str,
     # Build prompt with all scores
     prompt = f"Query: {query}\nPassage: {passage}\n"
     for name, score in scores.items():
-        prompt += f"\n{name}: {score}"
+        prompt += f"\n{name}: {score}"    
     
     # Add aggregation request
     prompt += ("\n\nPlease rate how the given passage is relevant to the query "
