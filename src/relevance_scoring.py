@@ -214,7 +214,7 @@ def get_relevance_score_decomposed_prompts(query: str, passage: str, pipeline,
         "passage": passage,
         "decomposed_scores_dict": decomposed_scores_dict,
         "final_relevance_score": final_score,
-        "total_llm_time": total_llm_time
+        # "total_llm_time": total_llm_time
     }
 
     with open(log_file_path, "a") as f:
