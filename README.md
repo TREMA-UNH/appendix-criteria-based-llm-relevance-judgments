@@ -82,7 +82,7 @@ python main.py \
   --queries_path "./data/llm4eval_query_2024.txt" \
   --docs_path "./data/llm4eval_document_2024.jsonl" \
   --result_file_path "./results/test_4prompts.txt" \ #output path to generated qrel
-  --decomposed_relevance
+  -decomposed_relevance
 ```
 
 For Together AI API usage:
