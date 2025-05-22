@@ -7,6 +7,13 @@ from data_processing import load_data_files, clean_files
 from model_utils import get_model_baseline
 from prompts import create_system_message
 from relevance_processors import process_test_decomposed_prompts_only_qrel
+import time
+
+try:
+    from umbrela_scoring import process_test_umbrella_prompt_only_qrel
+except ImportError:
+    process_test_umbrella_prompt_only_qrel = None
+
 
 def setup_logging_and_device():
     logging.basicConfig(level=logging.WARNING)
@@ -39,10 +46,22 @@ def parse_arguments():
                       help="Output path for results")
     parser.add_argument("--score_order_in_prompt", type=str, default="3210",
                       help="Order of relevance scores in prompt")
-    parser.add_argument("--decomposed_relavance", action="store_true",
+    parser.add_argument("-decomposed_relavance", action="store_true",
                         help="Use 4-prompts method")
     parser.add_argument("-together", action="store_true",
                       help="Use together.ai API")
+    
+    ##FOR ANALYSIS
+
+    parser.add_argument("--max_query", type=int, default=None,
+                      help="Maximum number of queries to process")
+    parser.add_argument("--max_doc", type=int, default=None,
+                      help="Maximum number of documents per query to process")
+    parser.add_argument("-umbrela_prompt", action="store_true",
+                        help="running umbrela for comparison")              
+    parser.add_argument("-time", action="store_true",
+                                 help='computational time analysis')
+    
     return parser.parse_args()
     
     
@@ -59,12 +78,29 @@ def main():
     model = get_model_baseline(args.model_id, args.together)
 
     if args.decomposed_relavance:
-        process_test_decomposed_prompts_only_qrel(
+        decomposed_llm_time = process_test_decomposed_prompts_only_qrel(
             test_qrel, docid_to_doc, qid_to_query,
-            args.result_file_path, model, system_message
+            args.result_file_path, model, system_message,
+            max_query=args.max_query, max_doc=args.max_doc
         )
+
+    print(f"Multicriteria for {args.max_doc} doc per {args.max_query} query took {decomposed_llm_time:.2f} seconds") if args.time else None
     
 
+    if args.umbrela_prompt:
+        if process_test_umbrella_prompt_only_qrel is None:
+            print("Warning: Umbrella prompt method skipped because umbrella_scoring.py is not available.")
+        else:
+            umbrella_llm_time = process_test_umbrella_prompt_only_qrel(
+                test_qrel, docid_to_doc, qid_to_query,
+                args.result_file_path, model, system_message,
+                max_query=args.max_query, max_doc=args.max_doc
+            )
+            print(f"Umbrella prompt method LLM calls took {umbrella_llm_time:.2f} seconds") if args.time else None
+
+            if args.decomposed_relavance:
+                print(f"Time difference (Decomposed - Umbrella): {decomposed_llm_time - umbrella_llm_time:.2f} seconds") if args.time else None
+                print(f"Decomposed is {decomposed_llm_time / umbrella_llm_time:.2f}x slower" if decomposed_llm_time > umbrella_llm_time else f"Umbrella is {umbrella_llm_time / decomposed_llm_time:.2f}x slower") if args.time else None
 
 if __name__ == "__main__":
     main()

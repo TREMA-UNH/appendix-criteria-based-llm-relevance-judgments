@@ -21,6 +21,7 @@ import json
 import re
 import torch
 from model_utils import TogetherPipeline
+import time
 
 # Prompt Templates and System Messages
 # ----------------------------------
@@ -41,7 +42,7 @@ CRITERIA_DEFINITIONS = {
     "Contextual Fit": "Does the passage provide relevant background or context."
 }
 
-def get_relevance_score_baseline(prompt: str, pipeline, system_message: str) -> str:
+def get_relevance_score_baseline(prompt: str, pipeline, system_message: str) -> Tuple[str, float]:
     """
     Get model response for a given prompt, handling both Together AI and standard pipelines.
     
@@ -90,6 +91,8 @@ def get_relevance_score_baseline(prompt: str, pipeline, system_message: str) -> 
         else:
             prompt = f"{prompt}"
 
+
+        strat_time = time.time()
         # Generate model output
         outputs = pipeline(
             prompt,
@@ -102,6 +105,8 @@ def get_relevance_score_baseline(prompt: str, pipeline, system_message: str) -> 
         )
         output = outputs[0]["generated_text"]
 
+        llm_time = time.time() - strat_time
+
         # Return generated text without the prompt if chat template was used, otherwise return full text
         if hasattr(pipeline.tokenizer, 'chat_template') and pipeline.tokenizer.chat_template is not None:
             output =  outputs[0]["generated_text"][len(prompt):]
@@ -110,7 +115,7 @@ def get_relevance_score_baseline(prompt: str, pipeline, system_message: str) -> 
     if not hasattr(get_relevance_score_baseline, "print_one_output"):
         get_relevance_score_baseline.print_one_output = True
         print(f"sample output: {output}")   
-    return output
+    return output, llm_time
 
 
 
@@ -123,7 +128,7 @@ def find_first_number(text: str) -> Optional[int]:
     return 0
 
 def get_criteria_score(query: str, passage: str, criteria: Tuple[str, str], 
-                      pipeline, system_message_decomposition: str) -> Optional[int]:
+                      pipeline, system_message_decomposition: str) ->Tuple[Optional[int], float]:
     """
     Score a specific criterion for the query-passage pair.
     
@@ -143,14 +148,14 @@ def get_criteria_score(query: str, passage: str, criteria: Tuple[str, str],
                       f"indicating {criteria_definition}")
     
     full_prompt = f"{criteria_prompt}\nQuery: {query}\nPassage: {passage}\nScore:"
-    score = get_relevance_score_baseline(full_prompt, pipeline, system_message_decomposition)
+    score, llm_time = get_relevance_score_baseline(full_prompt, pipeline, system_message_decomposition)
     # print(f"score: {score}")
     final_score = find_first_number(score)
     # print(final_score)
-    return final_score
+    return final_score, llm_time
 
 def aggregate_scores(scores: Dict[str, int], query: str, passage: str,
-                    pipeline, system_message: str) -> Optional[int]:
+                    pipeline, system_message: str) -> Tuple[Optional[int], float]:
     """
     Aggregate individual criteria scores into a final relevance score.
     
@@ -167,41 +172,34 @@ def aggregate_scores(scores: Dict[str, int], query: str, passage: str,
               "based on the given scores. The output must be only a score (0-3) "
               "that indicates how relevant they are.\nScore:")
     
-    score = get_relevance_score_baseline(prompt, pipeline, system_message)
-    return find_first_number(score)
+    score, llm_time = get_relevance_score_baseline(prompt, pipeline, system_message)
+    return find_first_number(score), llm_time
+
 
 def get_relevance_score_decomposed_prompts(query: str, passage: str, pipeline, 
                                          log_file_path: str, system_message: str,
-                                         qidx: str, docidx: str) -> Tuple[Optional[int], Dict[str, int]]:
+                                         qidx: str, docidx: str) -> Tuple[Optional[int], Dict[str, int], float]:
     """
     Main implementation of the 4-prompts decomposed scoring method.
+    Returns (final_score, criteria_scores, total_llm_time).
     
     This function:
     1. Scores each criterion individually
     2. Aggregates scores into final relevance judgment
     3. Logs all scores and intermediate steps
-    
-    Args:
-        query: The search query
-        passage: The document passage
-        pipeline: Model pipeline for scoring
-        log_file_path: Path to write scoring logs
-        system_message: System prompt for scoring
-        qidx: Query identifier
-        docidx: Document identifier
-        
-    Returns:
-        Tuple of (final relevance score, dictionary of criteria scores)
     """
     decomposed_scores_dict = {}
+    total_llm_time = 0.0
     
     # Score each criterion
     for criteria in CRITERIA_DEFINITIONS.items():
-        score = get_criteria_score(query, passage, criteria, pipeline, system_message)
+        score, llm_time = get_criteria_score(query, passage, criteria, pipeline, SYSTEM_MESSAGE_DECOMPOSITION)
         decomposed_scores_dict[criteria[0]] = score
+        total_llm_time += llm_time
 
     # Aggregate scores
-    final_score = aggregate_scores(decomposed_scores_dict, query, passage, pipeline, system_message)
+    final_score, agg_llm_time = aggregate_scores(decomposed_scores_dict, query, passage, pipeline, system_message)
+    # total_llm_time += agg_llm_time
 
     # Log results for analysis
     scoring_log = {
@@ -210,10 +208,12 @@ def get_relevance_score_decomposed_prompts(query: str, passage: str, pipeline,
         "query": query,
         "passage": passage,
         "decomposed_scores_dict": decomposed_scores_dict,
-        "final_relevance_score": final_score
+        "final_relevance_score": final_score,
+        "total_llm_time": total_llm_time
     }
 
     with open(log_file_path, "a") as f:
         json.dump(scoring_log, f)
+        f.write('\n')  # Ensure JSONL format
 
-    return final_score, decomposed_scores_dict
+    return final_score, decomposed_scores_dict, total_llm_time
