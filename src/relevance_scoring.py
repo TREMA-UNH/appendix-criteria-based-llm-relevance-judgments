@@ -217,7 +217,7 @@ def get_relevance_score_decomposed_prompts(query: str, passage: str, pipeline,
         # "total_llm_time": total_llm_time
     }
 
-    with open(log_file_path, "a") as f:
+    with open(log_file_path, "w") as f:
         json.dump(scoring_log, f)
         f.write('\n')  # Ensure JSONL format
 
