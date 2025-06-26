@@ -47,15 +47,15 @@ Aggregation Prompt:
 The final relevance judgment combines individual criteria scores using this aggregation prompt:
 
 ```text
-Please rate how the given passage is relevant to the query based on the given scores. 
-The output must be only a score (0-3) that indicates how relevant they are.
-
 Query: [query]
 Passage: [passage]
 Exactness: [score]
 Topicality: [score]
 Coverage: [score]
 Contextual Fit: [score]
+
+Please rate how the given passage is relevant to the query based on the given scores. 
+The output must be only a score (0-3) that indicates how relevant they are.
 Score:
 ```
 ## Code
