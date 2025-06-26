@@ -9,14 +9,12 @@
 Criteria-specific Grading System Message:
 
 ```text 
-You are evaluating the relevance of a passage to a query. Please provide a score on an integer scale of 0 to 3 for each dimension of relevance.
-
-3 = Excellent: The passage fully meets the criteria.
-2 = Good: The passage partially meets the criteria.
-1 = Fair: The passage has minor relevance but lacks in certain aspects.
-0 = Poor: The passage does not meet the criteria at all.
-
-Proceed with the evaluation.
+Please assess how well the provided passage meets specific criteria in relation to the query. Use the
+following scoring scale (0-3) for evaluation:
+0: Not relevant at all / No information provided.
+1: Marginally relevant / Partially addresses the criterion.
+2: Fairly relevant / Adequately addresses the criterion.
+3: Highly relevant / Fully satisfies the criterion.
 ```
 
 
